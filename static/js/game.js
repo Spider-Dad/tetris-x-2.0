@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Event Listeners
     document.addEventListener('keydown', (e) => {
-        if (isGameOver) return;
+        if (isGameOver && e.key !== 'Escape') return;
 
         switch(e.key) {
             case 'ArrowLeft':
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                         updateStats();
                         // Даем время на полную остановку музыки
-                        await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay
+                        await new Promise(resolve => setTimeout(resolve, 500));
                         if (!audioManager.stoppingMusic && !audioManager.currentMusic) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                             audioManager.playSound('title', true);
