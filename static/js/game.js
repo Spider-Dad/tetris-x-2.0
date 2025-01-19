@@ -196,7 +196,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             score += [0, 100, 300, 700, 1500][linesCleared];
             if (score >= level * 3000) {
                 level++;
-                audioManager.playSound('levelUp');
+                audioManager.playLevelUpSound();
+                startGameLoop(); // Обновляем скорость игры
             }
             updateStats();
         }
@@ -311,36 +312,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('startButton').addEventListener('click', async () => {
         const startButton = document.getElementById('startButton');
-        const loadingDots = document.getElementById('loadingDots');
+        const startScreen = document.getElementById('startScreen');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const gameScreen = document.getElementById('gameScreen');
 
-        // Отключаем кнопку на время загрузки
+        // Отключаем кнопку
         startButton.disabled = true;
 
-        // Останавливаем титульную музыку и сохраняем ссылку на null
+        // Останавливаем титульную музыку
         if (titleMusic) {
             titleMusic.stop();
             titleMusic = null;
         }
         audioManager.stopMusic();
 
-        // Показываем точки загрузки
-        loadingDots.classList.remove('hidden');
+        // Показываем экран загрузки
+        startScreen.classList.remove('active');
+        loadingScreen.classList.add('active');
 
         try {
             // Воспроизводим звук модема и ждем его окончания
             await audioManager.playModemSound();
 
+            // Небольшая задержка для анимации
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             // Переходим к игре
-            document.getElementById('startScreen').classList.remove('active');
-            document.getElementById('gameScreen').classList.add('active');
+            loadingScreen.classList.remove('active');
+            gameScreen.classList.add('active');
 
             // Инициализируем игру
             initGame();
         } catch (error) {
             console.error('Error during game initialization:', error);
         } finally {
-            // Скрываем точки загрузки и включаем кнопку
-            loadingDots.classList.add('hidden');
             startButton.disabled = false;
         }
     });

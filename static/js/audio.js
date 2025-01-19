@@ -20,6 +20,7 @@ class AudioManager {
         this.isGameOver = false;
         this.isPaused = false;
         this.gameOverSound = null;
+        this.levelUpSound = null;
     }
 
     createModemSound() {
@@ -180,6 +181,44 @@ class AudioManager {
         }
     }
 
+    async playLevelUpSound() {
+        if (this.isMuted || this.isGameOver || this.isPaused) return;
+
+        try {
+            // Останавливаем текущую фоновую музыку
+            if (this.currentMusic) {
+                this.currentMusic.stop();
+                this.currentMusic = null;
+            }
+
+            // Проигрываем звук перехода на новый уровень
+            const buffer = await this.loadSound(this.sounds.levelUp);
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.context.destination);
+
+            // После окончания звука levelUp запускаем новую фоновую мелодию
+            source.onended = () => {
+                if (!this.isGameOver && !this.isPaused) {
+                    this.playRandomBgMusic();
+                }
+            };
+
+            source.start(0);
+            this.levelUpSound = source;
+
+            // Добавляем в активные звуки
+            this.activeSounds.add(source);
+
+        } catch (error) {
+            console.error('Error playing level up sound:', error);
+            // Если произошла ошибка, все равно запускаем новую фоновую музыку
+            if (!this.isGameOver && !this.isPaused) {
+                this.playRandomBgMusic();
+            }
+        }
+    }
+
     stopMusic() {
         // Останавливаем текущую фоновую музыку
         if (this.currentMusic) {
@@ -191,7 +230,7 @@ class AudioManager {
             this.currentMusic = null;
         }
 
-        // Останавливаем титульную музыку, если она играет
+        // Останавливаем титульную музыку
         if (this.titleMusic) {
             try {
                 this.titleMusic.stop();
@@ -201,9 +240,9 @@ class AudioManager {
             this.titleMusic = null;
         }
 
-        // Останавливаем все активные звуки (кроме gameOver)
+        // Останавливаем все активные звуки (кроме gameOver и levelUp)
         this.activeSounds.forEach(sound => {
-            if (sound !== this.gameOverSound) {
+            if (sound !== this.gameOverSound && sound !== this.levelUpSound) {
                 try {
                     sound.stop();
                 } catch (error) {
@@ -237,5 +276,6 @@ class AudioManager {
         this.isPaused = false;
         this.stopMusic();
         this.gameOverSound = null;
+        this.levelUpSound = null;
     }
 }

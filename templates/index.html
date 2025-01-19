@@ -7,6 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <div id="loadingScreen" class="screen">
+        <div class="loading-screen">
+            <div class="loading-pixels">
+                <div class="loading-pixel"></div>
+                <div class="loading-pixel"></div>
+                <div class="loading-pixel"></div>
+                <div class="loading-pixel"></div>
+            </div>
+            <div class="loading-text">ЗАГРУЗКА...</div>
+        </div>
+    </div>
     <!-- Стартовый экран -->
     <div id="startScreen" class="screen active">
         <div class="grid-overlay"></div>

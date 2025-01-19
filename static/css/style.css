@@ -171,3 +171,41 @@ button.pulse {
     display: block;
     margin: 20px auto;
 }
+
+@keyframes loadingPixel {
+    0% { transform: scale(1); background-color: var(--neon-green); }
+    50% { transform: scale(0.8); background-color: var(--dark-green); }
+    100% { transform: scale(1); background-color: var(--neon-green); }
+}
+
+.loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.loading-pixels {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+
+.loading-pixel {
+    width: 20px;
+    height: 20px;
+    background-color: var(--neon-green);
+    box-shadow: 0 0 5px var(--neon-green);
+}
+
+.loading-pixel:nth-child(1) { animation: loadingPixel 1s infinite 0.1s; }
+.loading-pixel:nth-child(2) { animation: loadingPixel 1s infinite 0.2s; }
+.loading-pixel:nth-child(3) { animation: loadingPixel 1s infinite 0.3s; }
+.loading-pixel:nth-child(4) { animation: loadingPixel 1s infinite 0.4s; }
+
+.loading-text {
+    font-size: 16px;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    animation: flicker 2s infinite;
+}
