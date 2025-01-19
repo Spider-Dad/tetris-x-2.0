@@ -24,7 +24,7 @@ class AudioManager {
     }
 
     createModemSound() {
-        const duration = 3; // 3 seconds
+        const duration = 3;
         const audioBuffer = this.context.createBuffer(1, this.context.sampleRate * duration, this.context.sampleRate);
         const channelData = audioBuffer.getChannelData(0);
 
@@ -100,13 +100,11 @@ class AudioManager {
                 return null;
             }
 
-            // Если это звук gameOver и он уже был воспроизведен, не воспроизводить снова
             if (soundKey === 'gameOver') {
                 if (this.gameOverSound) {
                     return this.gameOverSound;
                 }
                 this.isGameOver = true;
-                // Останавливаем всю фоновую музыку перед воспроизведением game over
                 this.stopMusic();
             }
 
@@ -117,20 +115,16 @@ class AudioManager {
             source.loop = loop;
             source.start(0);
 
-            // Сохраняем ссылку на звук
             this.activeSounds.add(source);
 
-            // Если это титульная музыка, сохраняем отдельную ссылку
             if (soundKey === 'title') {
                 this.titleMusic = source;
             }
 
-            // Если это звук game over, сохраняем ссылку
             if (soundKey === 'gameOver') {
                 this.gameOverSound = source;
             }
 
-            // Удаляем звук из активных при завершении
             source.onended = () => {
                 this.activeSounds.delete(source);
                 if (soundKey === 'title') {
@@ -138,6 +132,9 @@ class AudioManager {
                 }
                 if (soundKey === 'gameOver') {
                     this.gameOverSound = null;
+                }
+                if (soundKey === 'levelUp') {
+                    this.levelUpSound = null;
                 }
             };
 
@@ -149,7 +146,7 @@ class AudioManager {
     }
 
     async playRandomBgMusic() {
-        if (this.isMuted || this.isGameOver || this.isPaused) return;
+        if (this.isMuted || this.isGameOver || this.isPaused || this.levelUpSound) return;
 
         try {
             if (this.currentMusic) {
@@ -166,7 +163,8 @@ class AudioManager {
             source.connect(this.context.destination);
             source.loop = false;
             source.onended = () => {
-                if (!this.isGameOver && !this.isPaused) {
+                this.currentMusic = null;
+                if (!this.isGameOver && !this.isPaused && !this.levelUpSound) {
                     this.playRandomBgMusic();
                 }
             };
@@ -174,8 +172,7 @@ class AudioManager {
             this.currentMusic = source;
         } catch (error) {
             console.error('Error playing background music:', error);
-            // Try playing the next song if current one fails
-            if (!this.isGameOver && !this.isPaused) {
+            if (!this.isGameOver && !this.isPaused && !this.levelUpSound) {
                 setTimeout(() => this.playRandomBgMusic(), 1000);
             }
         }
@@ -185,11 +182,11 @@ class AudioManager {
         if (this.isMuted || this.isGameOver || this.isPaused) return;
 
         try {
-            // Останавливаем текущую фоновую музыку
-            if (this.currentMusic) {
-                this.currentMusic.stop();
-                this.currentMusic = null;
-            }
+            // Останавливаем все звуки кроме специальных эффектов
+            this.stopMusic();
+
+            // Ждем полной остановки текущей музыки
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Проигрываем звук перехода на новый уровень
             const buffer = await this.loadSound(this.sounds.levelUp);
@@ -199,6 +196,7 @@ class AudioManager {
 
             // После окончания звука levelUp запускаем новую фоновую мелодию
             source.onended = () => {
+                this.levelUpSound = null;
                 if (!this.isGameOver && !this.isPaused) {
                     this.playRandomBgMusic();
                 }
@@ -206,13 +204,11 @@ class AudioManager {
 
             source.start(0);
             this.levelUpSound = source;
-
-            // Добавляем в активные звуки
             this.activeSounds.add(source);
 
         } catch (error) {
             console.error('Error playing level up sound:', error);
-            // Если произошла ошибка, все равно запускаем новую фоновую музыку
+            this.levelUpSound = null;
             if (!this.isGameOver && !this.isPaused) {
                 this.playRandomBgMusic();
             }
@@ -240,17 +236,17 @@ class AudioManager {
             this.titleMusic = null;
         }
 
-        // Останавливаем все активные звуки (кроме gameOver и levelUp)
-        this.activeSounds.forEach(sound => {
+        // Останавливаем все активные звуки кроме специальных эффектов
+        Array.from(this.activeSounds).forEach(sound => {
             if (sound !== this.gameOverSound && sound !== this.levelUpSound) {
                 try {
                     sound.stop();
+                    this.activeSounds.delete(sound);
                 } catch (error) {
                     console.error('Error stopping sound:', error);
                 }
             }
         });
-        this.activeSounds.clear();
     }
 
     toggleMute() {
