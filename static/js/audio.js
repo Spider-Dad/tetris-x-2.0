@@ -18,51 +18,29 @@ class AudioManager {
         this.activeSounds = new Set();
         this.isGameOver = false;
         this.isPaused = false;
-        this.gameOverSound = null;
-        this.stoppingMusic = false;
-        this.cleanupPromise = null;
     }
 
-    async cleanupCurrentAudio() {
-        if (this.cleanupPromise) {
-            await this.cleanupPromise;
+    stopAllSounds() {
+        // Немедленная остановка всех звуков
+        if (this.currentMusic) {
+            this.currentMusic.stop();
+            this.currentMusic = null;
         }
 
-        this.cleanupPromise = new Promise(async (resolve) => {
+        if (this.titleMusic) {
+            this.titleMusic.stop();
+            this.titleMusic = null;
+        }
+
+        // Остановка всех активных звуков
+        for (const sound of this.activeSounds) {
             try {
-                if (this.currentMusic) {
-                    this.currentMusic.stop();
-                    this.currentMusic = null;
-                }
-
-                if (this.titleMusic) {
-                    this.titleMusic.stop();
-                    this.titleMusic = null;
-                }
-
-                // Остановка всех активных звуков кроме звука окончания игры
-                for (const sound of this.activeSounds) {
-                    if (sound !== this.gameOverSound) {
-                        try {
-                            sound.stop();
-                            this.activeSounds.delete(sound);
-                        } catch (error) {
-                            console.error('Error stopping sound:', error);
-                        }
-                    }
-                }
-
-                // Дополнительная задержка для полной остановки звуков
-                await new Promise(resolve => setTimeout(resolve, 200));
+                sound.stop();
             } catch (error) {
-                console.error('Error during cleanup:', error);
-            } finally {
-                this.cleanupPromise = null;
-                resolve();
+                console.error('Error stopping sound:', error);
             }
-        });
-
-        return this.cleanupPromise;
+        }
+        this.activeSounds.clear();
     }
 
     async playSound(soundKey, loop = false) {
@@ -75,13 +53,8 @@ class AudioManager {
                 return null;
             }
 
-            if (soundKey === 'title') {
-                await this.cleanupCurrentAudio();
-                // Дополнительная проверка перед запуском титульной музыки
-                if (this.currentMusic || this.titleMusic) {
-                    return null;
-                }
-            }
+            // Всегда останавливаем все звуки перед воспроизведением нового
+            this.stopAllSounds();
 
             const buffer = await this.loadSound(soundUrl);
             const source = this.context.createBufferSource();
@@ -94,9 +67,6 @@ class AudioManager {
 
             if (soundKey === 'title') {
                 this.titleMusic = source;
-            } else if (soundKey === 'gameOver') {
-                this.gameOverSound = source;
-                this.isGameOver = true;
             }
 
             source.onended = () => {
@@ -114,13 +84,16 @@ class AudioManager {
     }
 
     async playRandomBgMusic() {
-        // Проверяем, что мы находимся в активной игровой сессии
-        if (this.isMuted || this.isGameOver || this.isPaused || this.titleMusic) return;
+        // Строгая проверка состояния игры
+        if (this.isMuted || this.isGameOver || this.isPaused || this.titleMusic) {
+            return;
+        }
 
         try {
-            await this.cleanupCurrentAudio();
+            // Останавливаем все звуки перед началом новой мелодии
+            this.stopAllSounds();
 
-            // Дополнительная проверка перед запуском новой фоновой музыки
+            // Повторная проверка состояния после остановки звуков
             if (this.isGameOver || this.isPaused || this.titleMusic) {
                 return;
             }
@@ -133,6 +106,7 @@ class AudioManager {
             source.buffer = buffer;
             source.connect(this.context.destination);
             source.loop = false;
+
             source.onended = () => {
                 this.currentMusic = null;
                 // Проверяем состояние игры перед запуском следующей мелодии
@@ -143,33 +117,25 @@ class AudioManager {
 
             source.start(0);
             this.currentMusic = source;
+            this.activeSounds.add(source);
         } catch (error) {
             console.error('Error playing background music:', error);
         }
     }
 
-    async stopMusic() {
-        if (this.stoppingMusic) return;
-        this.stoppingMusic = true;
-
-        try {
-            await this.cleanupCurrentAudio();
-            // Дополнительная задержка после остановки всей музыки
-            await new Promise(resolve => setTimeout(resolve, 200));
-        } finally {
-            this.stoppingMusic = false;
-        }
+    stopMusic() {
+        this.stopAllSounds();
     }
 
     toggleMute() {
         this.isMuted = !this.isMuted;
         if (this.isMuted) {
-            this.stopMusic();
+            this.stopAllSounds();
         } else {
             // Воспроизводим музыку в зависимости от текущего состояния
             if (!this.isGameOver && !this.isPaused && !this.titleMusic) {
                 this.playRandomBgMusic();
-            } else if (this.titleMusic) {
+            } else if (!this.isGameOver && !this.isPaused) {
                 this.playSound('title', true);
             }
         }
@@ -178,7 +144,7 @@ class AudioManager {
     setPause(paused) {
         this.isPaused = paused;
         if (paused) {
-            this.stopMusic();
+            this.stopAllSounds();
         } else if (!this.isGameOver && !this.titleMusic) {
             this.playRandomBgMusic();
         }
@@ -187,8 +153,7 @@ class AudioManager {
     reset() {
         this.isGameOver = false;
         this.isPaused = false;
-        this.stopMusic();
-        this.gameOverSound = null;
+        this.stopAllSounds();
     }
 
     async loadSound(url) {

@@ -222,7 +222,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearInterval(gameLoop);
             gameLoop = null;
         }
+        // Сначала останавливаем всю музыку
         audioManager.stopMusic();
+        audioManager.isGameOver = true;
+        // Затем воспроизводим звук окончания игры
         audioManager.playSound('gameOver');
         document.getElementById('gameScreen').classList.remove('active');
         document.getElementById('gameOverScreen').classList.add('active');
@@ -314,27 +317,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'Escape':
                 (async () => {
                     try {
-                        await audioManager.stopMusic();
+                        // Немедленно останавливаем всю музыку
+                        audioManager.stopMusic();
                         audioManager.reset();
+
+                        // Очищаем игровое состояние
                         document.getElementById('gameScreen').classList.remove('active');
                         document.getElementById('startScreen').classList.add('active');
+                        document.getElementById('gameOverScreen').classList.remove('active');
+
                         board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
                         score = 0;
                         level = 1;
                         lines = 0;
                         isGameOver = false;
                         isPaused = false;
+
                         if (gameLoop) {
                             clearInterval(gameLoop);
                             gameLoop = null;
                         }
+
                         updateStats();
-                        // Даем время на полную остановку музыки
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        if (!audioManager.stoppingMusic && !audioManager.currentMusic) {
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                            audioManager.playSound('title', true);
-                        }
+
+                        // Запускаем титульную музыку только после полной остановки всех звуков
+                        audioManager.playSound('title', true);
                     } catch (error) {
                         console.error('Error during ESC handling:', error);
                     }
