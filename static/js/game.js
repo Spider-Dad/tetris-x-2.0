@@ -327,7 +327,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     gameLoop = null;
                 }
                 updateStats();
-                setTimeout(() => audioManager.playSound('title', true), 100);
+                setTimeout(() => {
+                    if (audioManager.currentMusic === null) {
+                        audioManager.playSound('title', true);
+                    }
+                }, 100);
                 break;
         }
     });
