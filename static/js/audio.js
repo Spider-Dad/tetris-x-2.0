@@ -13,8 +13,10 @@ class AudioManager {
             '/static/music/06-2-player-mode-danger.mp3'
         ];
         this.currentMusic = null;
+        this.titleMusic = null;
         this.isMuted = false;
         this.loadingPromises = new Map();
+        this.activeSounds = new Set();
     }
 
     createModemSound() {
@@ -103,6 +105,23 @@ class AudioManager {
             source.connect(this.context.destination);
             source.loop = loop;
             source.start(0);
+
+            // Сохраняем ссылку на звук
+            this.activeSounds.add(source);
+
+            // Если это титульная музыка, сохраняем отдельную ссылку
+            if (soundKey === 'title') {
+                this.titleMusic = source;
+            }
+
+            // Удаляем звук из активных при завершении
+            source.onended = () => {
+                this.activeSounds.delete(source);
+                if (soundKey === 'title') {
+                    this.titleMusic = null;
+                }
+            };
+
             return source;
         } catch (error) {
             console.error('Error playing sound:', error);
@@ -138,14 +157,35 @@ class AudioManager {
     }
 
     stopMusic() {
+        // Останавливаем текущую фоновую музыку
         if (this.currentMusic) {
             try {
                 this.currentMusic.stop();
             } catch (error) {
-                console.error('Error stopping music:', error);
+                console.error('Error stopping current music:', error);
             }
             this.currentMusic = null;
         }
+
+        // Останавливаем титульную музыку, если она играет
+        if (this.titleMusic) {
+            try {
+                this.titleMusic.stop();
+            } catch (error) {
+                console.error('Error stopping title music:', error);
+            }
+            this.titleMusic = null;
+        }
+
+        // Останавливаем все активные звуки
+        this.activeSounds.forEach(sound => {
+            try {
+                sound.stop();
+            } catch (error) {
+                console.error('Error stopping sound:', error);
+            }
+        });
+        this.activeSounds.clear();
     }
 
     toggleMute() {

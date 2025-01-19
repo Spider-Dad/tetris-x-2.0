@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const audioManager = new AudioManager();
     const gameCanvas = document.getElementById('gameCanvas');
     const nextPieceCanvas = document.getElementById('nextPiece');
@@ -224,7 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Отключаем кнопку на время загрузки
         startButton.disabled = true;
-        // Останавливаем титульную музыку
+
+        // Останавливаем титульную музыку и сохраняем ссылку на null
+        if (titleMusic) {
+            titleMusic.stop();
+            titleMusic = null;
+        }
         audioManager.stopMusic();
 
         // Показываем точки загрузки
@@ -268,5 +273,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Start title screen music
-    audioManager.playSound('title', true);
+    let titleMusic = await audioManager.playSound('title', true);
 });
