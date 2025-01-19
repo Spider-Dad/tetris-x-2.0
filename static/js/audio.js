@@ -96,41 +96,37 @@ class AudioManager {
         }
 
         this.cleanupPromise = new Promise(async (resolve) => {
-            if (this.currentMusic) {
-                try {
+            try {
+                if (this.currentMusic) {
                     this.currentMusic.stop();
-                } catch (error) {
-                    console.error('Error stopping current music:', error);
+                    this.currentMusic = null;
                 }
-                this.currentMusic = null;
-            }
 
-            if (this.titleMusic) {
-                try {
+                if (this.titleMusic) {
                     this.titleMusic.stop();
-                } catch (error) {
-                    console.error('Error stopping title music:', error);
+                    this.titleMusic = null;
                 }
-                this.titleMusic = null;
-            }
 
-            // Остановка всех активных звуков кроме звука окончания игры
-            const promises = Array.from(this.activeSounds).map(sound => {
-                if (sound !== this.gameOverSound) {
-                    try {
-                        sound.stop();
-                        this.activeSounds.delete(sound);
-                    } catch (error) {
-                        console.error('Error stopping sound:', error);
+                // Остановка всех активных звуков кроме звука окончания игры
+                for (const sound of this.activeSounds) {
+                    if (sound !== this.gameOverSound) {
+                        try {
+                            sound.stop();
+                            this.activeSounds.delete(sound);
+                        } catch (error) {
+                            console.error('Error stopping sound:', error);
+                        }
                     }
                 }
-                return Promise.resolve();
-            });
 
-            await Promise.all(promises);
-            await new Promise(resolve => setTimeout(resolve, 200));
-            this.cleanupPromise = null;
-            resolve();
+                // Дополнительная задержка для полной остановки звуков
+                await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (error) {
+                console.error('Error during cleanup:', error);
+            } finally {
+                this.cleanupPromise = null;
+                resolve();
+            }
         });
 
         return this.cleanupPromise;
@@ -146,16 +142,12 @@ class AudioManager {
                 return null;
             }
 
-            if (soundKey === 'gameOver') {
-                if (this.gameOverSound) {
-                    return this.gameOverSound;
-                }
-                this.isGameOver = true;
-                await this.cleanupCurrentAudio();
-            }
-
             if (soundKey === 'title') {
                 await this.cleanupCurrentAudio();
+                // Дополнительная проверка перед запуском титульной музыки
+                if (this.currentMusic || this.titleMusic) {
+                    return null;
+                }
             }
 
             const buffer = await this.loadSound(soundUrl);
@@ -170,17 +162,11 @@ class AudioManager {
             if (soundKey === 'title') {
                 this.titleMusic = source;
             }
-            if (soundKey === 'gameOver') {
-                this.gameOverSound = source;
-            }
 
             source.onended = () => {
                 this.activeSounds.delete(source);
                 if (soundKey === 'title') {
                     this.titleMusic = null;
-                }
-                if (soundKey === 'gameOver') {
-                    this.gameOverSound = null;
                 }
             };
 
@@ -228,6 +214,8 @@ class AudioManager {
 
         try {
             await this.cleanupCurrentAudio();
+            // Дополнительная задержка после остановки всей музыки
+            await new Promise(resolve => setTimeout(resolve, 200));
         } finally {
             this.stoppingMusic = false;
         }
