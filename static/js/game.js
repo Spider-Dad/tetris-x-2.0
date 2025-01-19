@@ -1,5 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const audioManager = new AudioManager();
+
+    // Попытка воспроизвести титульную музыку при загрузке страницы
+    try {
+        await audioManager.playSound('title', true);
+    } catch (error) {
+        console.error('Error playing initial title music:', error);
+    }
+
     const gameCanvas = document.getElementById('gameCanvas');
     const nextPieceCanvas = document.getElementById('nextPiece');
     const ctx = gameCanvas.getContext('2d');
@@ -319,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     gameLoop = null;
                 }
                 updateStats();
-                audioManager.playSound('title', true);
+                setTimeout(() => audioManager.playSound('title', true), 100);
                 break;
         }
     });
