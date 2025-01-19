@@ -17,6 +17,7 @@ class AudioManager {
         this.isMuted = false;
         this.loadingPromises = new Map();
         this.activeSounds = new Set();
+        this.isGameOver = false;
     }
 
     createModemSound() {
@@ -92,12 +93,18 @@ class AudioManager {
     async playSound(soundKey, loop = false) {
         if (this.isMuted) return null;
 
+        // Не воспроизводить звуки, если игра окончена (кроме gameOver)
+        if (this.isGameOver && soundKey !== 'gameOver') return null;
+
         try {
             const soundUrl = this.sounds[soundKey];
             if (!soundUrl) {
                 console.error(`Sound ${soundKey} not found`);
                 return null;
             }
+
+            // Если это звук gameOver и он уже проигрывался, не проигрывать снова
+            if (soundKey === 'gameOver' && this.isGameOver) return null;
 
             const buffer = await this.loadSound(soundUrl);
             const source = this.context.createBufferSource();
@@ -112,6 +119,11 @@ class AudioManager {
             // Если это титульная музыка, сохраняем отдельную ссылку
             if (soundKey === 'title') {
                 this.titleMusic = source;
+            }
+
+            // Если это звук gameOver, устанавливаем флаг
+            if (soundKey === 'gameOver') {
+                this.isGameOver = true;
             }
 
             // Удаляем звук из активных при завершении
@@ -130,7 +142,7 @@ class AudioManager {
     }
 
     async playRandomBgMusic() {
-        if (this.isMuted) return;
+        if (this.isMuted || this.isGameOver) return;
 
         if (this.currentMusic) {
             this.currentMusic.stop();
@@ -177,7 +189,7 @@ class AudioManager {
             this.titleMusic = null;
         }
 
-        // Останавливаем все активные звуки
+        // Останавливаем все активные звуки (кроме gameOver)
         this.activeSounds.forEach(sound => {
             try {
                 sound.stop();
@@ -192,8 +204,13 @@ class AudioManager {
         this.isMuted = !this.isMuted;
         if (this.isMuted) {
             this.stopMusic();
-        } else {
+        } else if (!this.isGameOver) {
             this.playRandomBgMusic();
         }
+    }
+
+    reset() {
+        this.isGameOver = false;
+        this.stopMusic();
     }
 }

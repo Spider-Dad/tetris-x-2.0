@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lines = 0;
     let gameLoop = null;
     let isPaused = false;
+    let isGameOver = false;
 
     function getNewPiece() {
         const piece = getRandomTetromino();
@@ -32,10 +33,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         score = 0;
         level = 1;
         lines = 0;
+        isPaused = false;
+        isGameOver = false;
         updateStats();
         drawBoard();
         drawNextPiece();
+        startGameLoop();
         audioManager.playRandomBgMusic();
+    }
+
+    function startGameLoop() {
+        if (gameLoop) {
+            clearInterval(gameLoop);
+        }
+        gameLoop = setInterval(() => {
+            if (!isPaused && !isGameOver) {
+                moveDown();
+            }
+        }, Math.max(50, 1000 - (level - 1) * 50));
     }
 
     function drawBlock(ctx, x, y, color) {
@@ -71,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Draw current piece
-        if (currentPiece) {
+        if (currentPiece && !isGameOver) {
             currentPiece.shape.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
@@ -84,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function drawNextPiece() {
         nextCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
-        if (nextPiece) {
+        if (nextPiece && !isGameOver) {
             const offsetX = (nextPieceCanvas.width - nextPiece.shape[0].length * BLOCK_SIZE) / 2;
             const offsetY = (nextPieceCanvas.height - nextPiece.shape.length * BLOCK_SIZE) / 2;
 
@@ -117,7 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function moveDown() {
-        if (!currentPiece) return;
+        if (!currentPiece || isGameOver) return;
 
         currentPiece.y++;
         if (checkCollision()) {
@@ -127,12 +142,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPiece = nextPiece;
             nextPiece = getNewPiece();
 
-            if (checkCollision()) {
-                gameOver();
+            if (checkGameOver()) {
+                endGame();
+                return;
             }
             drawNextPiece();
         }
         drawBoard();
+    }
+
+    function checkGameOver() {
+        return currentPiece.shape.some((row, y) => {
+            return row.some((value, x) => {
+                return value && currentPiece.y + y <= 0 && board[currentPiece.y + y] && board[currentPiece.y + y][currentPiece.x + x];
+            });
+        });
     }
 
     function checkCollision() {
@@ -184,61 +208,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('lines').textContent = lines;
     }
 
-    function gameOver() {
-        cancelAnimationFrame(gameLoop);
+    function endGame() {
+        isGameOver = true;
+        if (gameLoop) {
+            clearInterval(gameLoop);
+            gameLoop = null;
+        }
         audioManager.stopMusic();
         audioManager.playSound('gameOver');
         document.getElementById('gameScreen').classList.remove('active');
         document.getElementById('gameOverScreen').classList.add('active');
     }
 
+    function dropPiece() {
+        if (isGameOver || isPaused) return;
+
+        let dropDistance = 0;
+        while (!checkCollision()) {
+            currentPiece.y++;
+            dropDistance++;
+        }
+        if (dropDistance > 0) {
+            currentPiece.y--;
+            placePiece();
+            clearLines();
+            currentPiece = nextPiece;
+            nextPiece = getNewPiece();
+            if (checkGameOver()) {
+                endGame();
+                return;
+            }
+            drawNextPiece();
+            drawBoard();
+        }
+    }
+
+    function togglePause() {
+        if (isGameOver) return;
+
+        isPaused = !isPaused;
+        if (isPaused) {
+            audioManager.stopMusic();
+        } else {
+            audioManager.playRandomBgMusic();
+        }
+    }
+
     // Event Listeners
     document.addEventListener('keydown', (e) => {
-        if (!currentPiece || isPaused) return;
+        if (isGameOver) return;
 
         switch(e.key) {
             case 'ArrowLeft':
             case '4':
-                currentPiece.x--;
-                if (checkCollision()) currentPiece.x++;
+                if (!isPaused) {
+                    currentPiece.x--;
+                    if (checkCollision()) currentPiece.x++;
+                    drawBoard();
+                }
                 break;
             case 'ArrowRight':
             case '6':
-                currentPiece.x++;
-                if (checkCollision()) currentPiece.x--;
+                if (!isPaused) {
+                    currentPiece.x++;
+                    if (checkCollision()) currentPiece.x--;
+                    drawBoard();
+                }
                 break;
             case 'ArrowDown':
             case '2':
-                moveDown();
+                if (!isPaused) {
+                    moveDown();
+                }
                 break;
             case 'ArrowUp':
             case '8':
-                const matrix = currentPiece.shape;
-                const N = matrix.length;
-                const rotated = matrix.map((row, i) =>
-                    matrix.map(col => col[N - i - 1])
-                );
-                const previousShape = currentPiece.shape;
-                currentPiece.shape = rotated;
-                if (checkCollision()) currentPiece.shape = previousShape;
+                if (!isPaused) {
+                    const matrix = currentPiece.shape;
+                    const N = matrix.length;
+                    const rotated = matrix.map((row, i) =>
+                        matrix.map(col => col[N - i - 1])
+                    );
+                    const previousShape = currentPiece.shape;
+                    currentPiece.shape = rotated;
+                    if (checkCollision()) currentPiece.shape = previousShape;
+                    drawBoard();
+                }
                 break;
             case ' ':
             case '5':
-                while (!checkCollision()) {
-                    currentPiece.y++;
+                if (!isPaused) {
+                    dropPiece();
                 }
-                currentPiece.y--;
-                placePiece();
-                clearLines();
-                currentPiece = nextPiece;
-                nextPiece = getNewPiece();
-                if (checkCollision()) {
-                    gameOver();
-                }
-                drawNextPiece();
                 break;
             case 'Enter':
-                isPaused = !isPaused;
+                togglePause();
                 break;
             case 'Control':
                 audioManager.toggleMute();
@@ -247,7 +311,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 location.reload();
                 break;
         }
-        drawBoard();
     });
 
     document.getElementById('startButton').addEventListener('click', async () => {
@@ -277,14 +340,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Инициализируем игру
             initGame();
-
-            // Запускаем игровой цикл
-            gameLoop = setInterval(() => {
-                if (!isPaused) {
-                    moveDown();
-                }
-            }, Math.max(50, 1000 - (level - 1) * 50));
-
         } catch (error) {
             console.error('Error during game initialization:', error);
         } finally {
