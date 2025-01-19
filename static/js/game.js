@@ -304,7 +304,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 audioManager.toggleMute();
                 break;
             case 'Escape':
-                location.reload();
+                audioManager.stopMusic();
+                audioManager.reset();
+                document.getElementById('gameScreen').classList.remove('active');
+                document.getElementById('startScreen').classList.add('active');
+                board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                score = 0;
+                level = 1;
+                lines = 0;
+                isGameOver = false;
+                isPaused = false;
+                if (gameLoop) {
+                    clearInterval(gameLoop);
+                    gameLoop = null;
+                }
+                updateStats();
+                audioManager.playSound('title', true);
                 break;
         }
     });
@@ -315,28 +330,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadingScreen = document.getElementById('loadingScreen');
         const gameScreen = document.getElementById('gameScreen');
 
-        // Отключаем кнопку
+        // Сначала пытаемся воспроизвести титульную музыку
+        try {
+            await audioManager.playSound('title', true);
+        } catch (error) {
+            console.error('Error playing title music:', error);
+        }
+
+        // Остальная логика остается без изменений
         startButton.disabled = true;
-
-        // Останавливаем титульную музыку
         audioManager.stopMusic();
-
-        // Показываем экран загрузки
         startScreen.classList.remove('active');
         loadingScreen.classList.add('active');
 
         try {
-            // Воспроизводим звук модема и ждем его окончания
             await audioManager.playModemSound();
-
-            // Небольшая задержка для анимации
             await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Переходим к игре
             loadingScreen.classList.remove('active');
             gameScreen.classList.add('active');
-
-            // Инициализируем игру
             initGame();
         } catch (error) {
             console.error('Error during game initialization:', error);
@@ -354,7 +365,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('exitButton').addEventListener('click', () => {
         location.reload();
     });
-
-    // Start title screen music
-    let titleMusic = await audioManager.playSound('title', true);
 });
