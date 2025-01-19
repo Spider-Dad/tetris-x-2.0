@@ -1,0 +1,139 @@
+:root {
+    --neon-green: #00ff00;
+    --dark-green: #003300;
+    --glow-spread: 5px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: var(--neon-green);
+    font-family: 'Press Start 2P', cursive;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.screen {
+    display: none;
+    position: relative;
+    text-align: center;
+}
+
+.screen.active {
+    display: block;
+}
+
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: linear-gradient(var(--dark-green) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--dark-green) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+h1, h2 {
+    text-shadow: 0 0 var(--glow-spread) var(--neon-green);
+    animation: flicker 2s infinite;
+}
+
+h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 40px;
+}
+
+button {
+    background: transparent;
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    padding: 15px 30px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    cursor: pointer;
+    text-shadow: 0 0 var(--glow-spread) var(--neon-green);
+    box-shadow: 0 0 var(--glow-spread) var(--neon-green);
+}
+
+button.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+.loading-dots {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background-color: var(--neon-green);
+    border-radius: 50%;
+    box-shadow: 0 0 var(--glow-spread) var(--neon-green);
+}
+
+.hidden {
+    display: none;
+}
+
+.tribute {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.game-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+.stats-panel, .controls-panel {
+    background: rgba(0, 51, 0, 0.3);
+    padding: 20px;
+    border: 1px solid var(--neon-green);
+    box-shadow: 0 0 var(--glow-spread) var(--neon-green);
+}
+
+#gameCanvas {
+    border: 2px solid var(--neon-green);
+    box-shadow: 0 0 var(--glow-spread) var(--neon-green);
+}
+
+.control-key {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+#gameOverScreen button {
+    display: block;
+    margin: 20px auto;
+}

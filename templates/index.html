@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ТЕТРИС - Поколение ИКС</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Стартовый экран -->
+    <div id="startScreen" class="screen active">
+        <div class="grid-overlay"></div>
+        <h1>ТЕТРИС</h1>
+        <h2>Поколение ИКС</h2>
+        <button id="startButton" class="pulse">НАЧАТЬ ИГРУ</button>
+        <div id="loadingDots" class="loading-dots hidden">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+        <div class="tribute">
+            С глубоким уважением к Алексею Пажитнову<br>
+            за создание одной из величайших игр в истории
+        </div>
+    </div>
+
+    <!-- Игровой экран -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <div class="stats-panel">
+                <div class="stats">
+                    <p>Уровень: <span id="level">1</span></p>
+                    <p>Очки: <span id="score">0</span></p>
+                    <p>Линии: <span id="lines">0</span></p>
+                </div>
+                <div class="next-piece">
+                    <p>Следующая:</p>
+                    <canvas id="nextPiece" width="120" height="120"></canvas>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas" width="300" height="600"></canvas>
+
+            <div class="controls-panel">
+                <h3>Управление:</h3>
+                <div class="control-key">←/4 Налево</div>
+                <div class="control-key">→/6 Направо</div>
+                <div class="control-key">↑/8 Поворот</div>
+                <div class="control-key">↓/2 Ускорить</div>
+                <div class="control-key">␣/5 Сбросить</div>
+                <div class="control-key">Enter Пауза</div>
+                <div class="control-key">Ctrl Звук</div>
+                <div class="control-key">Esc Выход</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран окончания игры -->
+    <div id="gameOverScreen" class="screen">
+        <h2>Игра окончена</h2>
+        <button id="restartButton">Начать заново?</button>
+        <button id="exitButton">Выйти из игры</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/tetrominos.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
