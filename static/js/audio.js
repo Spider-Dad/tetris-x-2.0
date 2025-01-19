@@ -19,6 +19,7 @@ class AudioManager {
         this.activeSounds = new Set();
         this.isGameOver = false;
         this.isPaused = false;
+        this.gameOverSound = null;
     }
 
     createModemSound() {
@@ -26,7 +27,6 @@ class AudioManager {
         const audioBuffer = this.context.createBuffer(1, this.context.sampleRate * duration, this.context.sampleRate);
         const channelData = audioBuffer.getChannelData(0);
 
-        // Создаем характерный звук модема
         for (let i = 0; i < audioBuffer.length; i++) {
             const t = i / this.context.sampleRate;
             const freq1 = 1000 + Math.sin(t * 10) * 500;
@@ -92,9 +92,6 @@ class AudioManager {
     async playSound(soundKey, loop = false) {
         if (this.isMuted) return null;
 
-        // Не воспроизводить звуки, если игра окончена (кроме gameOver)
-        if (this.isGameOver && soundKey !== 'gameOver') return null;
-
         try {
             const soundUrl = this.sounds[soundKey];
             if (!soundUrl) {
@@ -102,8 +99,15 @@ class AudioManager {
                 return null;
             }
 
-            // Если это звук gameOver и он уже проигрывался, не проигрывать снова
-            if (soundKey === 'gameOver' && this.isGameOver) return null;
+            // Если это звук gameOver и он уже был воспроизведен, не воспроизводить снова
+            if (soundKey === 'gameOver') {
+                if (this.gameOverSound) {
+                    return this.gameOverSound;
+                }
+                this.isGameOver = true;
+                // Останавливаем всю фоновую музыку перед воспроизведением game over
+                this.stopMusic();
+            }
 
             const buffer = await this.loadSound(soundUrl);
             const source = this.context.createBufferSource();
@@ -120,9 +124,9 @@ class AudioManager {
                 this.titleMusic = source;
             }
 
-            // Если это звук gameOver, устанавливаем флаг
+            // Если это звук game over, сохраняем ссылку
             if (soundKey === 'gameOver') {
-                this.isGameOver = true;
+                this.gameOverSound = source;
             }
 
             // Удаляем звук из активных при завершении
@@ -130,6 +134,9 @@ class AudioManager {
                 this.activeSounds.delete(source);
                 if (soundKey === 'title') {
                     this.titleMusic = null;
+                }
+                if (soundKey === 'gameOver') {
+                    this.gameOverSound = null;
                 }
             };
 
@@ -168,7 +175,7 @@ class AudioManager {
             console.error('Error playing background music:', error);
             // Try playing the next song if current one fails
             if (!this.isGameOver && !this.isPaused) {
-                this.playRandomBgMusic();
+                setTimeout(() => this.playRandomBgMusic(), 1000);
             }
         }
     }
@@ -196,10 +203,12 @@ class AudioManager {
 
         // Останавливаем все активные звуки (кроме gameOver)
         this.activeSounds.forEach(sound => {
-            try {
-                sound.stop();
-            } catch (error) {
-                console.error('Error stopping sound:', error);
+            if (sound !== this.gameOverSound) {
+                try {
+                    sound.stop();
+                } catch (error) {
+                    console.error('Error stopping sound:', error);
+                }
             }
         });
         this.activeSounds.clear();
@@ -227,5 +236,6 @@ class AudioManager {
         this.isGameOver = false;
         this.isPaused = false;
         this.stopMusic();
+        this.gameOverSound = null;
     }
 }
