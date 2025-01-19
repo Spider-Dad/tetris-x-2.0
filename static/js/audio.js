@@ -7,10 +7,10 @@ class AudioManager {
             levelUp: '/static/music/07-stage-clear.mp3'
         };
         this.bgMusic = [
-            '/static/music/02-a-type-music-version-1_1.mp3',
-            '/static/music/03-b-type-music.mp3',
-            '/static/music/04-c-type-music.mp3',
-            '/static/music/06-2-player-mode-danger.mp3'
+            '/static/music/melody/02-a-type-music-version-1_1.mp3',
+            '/static/music/melody/03-b-type-music.mp3',
+            '/static/music/melody/04-c-type-music.mp3',
+            '/static/music/melody/06-2-player-mode-danger.mp3'
         ];
         this.currentMusic = null;
         this.titleMusic = null;
@@ -18,6 +18,7 @@ class AudioManager {
         this.loadingPromises = new Map();
         this.activeSounds = new Set();
         this.isGameOver = false;
+        this.isPaused = false;
     }
 
     createModemSound() {
@@ -27,17 +28,15 @@ class AudioManager {
 
         // Создаем характерный звук модема
         for (let i = 0; i < audioBuffer.length; i++) {
-            // Базовая частота
             const t = i / this.context.sampleRate;
             const freq1 = 1000 + Math.sin(t * 10) * 500;
             const freq2 = 2000 + Math.sin(t * 5) * 300;
 
-            // Смешиваем разные частоты для получения характерного звука
             channelData[i] = 
                 0.3 * Math.sin(2 * Math.PI * freq1 * t) +
                 0.3 * Math.sin(2 * Math.PI * freq2 * t) +
                 0.2 * Math.sin(2 * Math.PI * 800 * t) *
-                Math.exp(-t); // Затухание
+                Math.exp(-t);
         }
 
         return audioBuffer;
@@ -142,29 +141,35 @@ class AudioManager {
     }
 
     async playRandomBgMusic() {
-        if (this.isMuted || this.isGameOver) return;
-
-        if (this.currentMusic) {
-            this.currentMusic.stop();
-            this.currentMusic = null;
-        }
-
-        const randomIndex = Math.floor(Math.random() * this.bgMusic.length);
-        const musicUrl = this.bgMusic[randomIndex];
+        if (this.isMuted || this.isGameOver || this.isPaused) return;
 
         try {
+            if (this.currentMusic) {
+                this.currentMusic.stop();
+                this.currentMusic = null;
+            }
+
+            const randomIndex = Math.floor(Math.random() * this.bgMusic.length);
+            const musicUrl = this.bgMusic[randomIndex];
+
             const buffer = await this.loadSound(musicUrl);
             const source = this.context.createBufferSource();
             source.buffer = buffer;
             source.connect(this.context.destination);
             source.loop = false;
-            source.onended = () => this.playRandomBgMusic();
+            source.onended = () => {
+                if (!this.isGameOver && !this.isPaused) {
+                    this.playRandomBgMusic();
+                }
+            };
             source.start(0);
             this.currentMusic = source;
         } catch (error) {
             console.error('Error playing background music:', error);
             // Try playing the next song if current one fails
-            this.playRandomBgMusic();
+            if (!this.isGameOver && !this.isPaused) {
+                this.playRandomBgMusic();
+            }
         }
     }
 
@@ -204,6 +209,15 @@ class AudioManager {
         this.isMuted = !this.isMuted;
         if (this.isMuted) {
             this.stopMusic();
+        } else if (!this.isGameOver && !this.isPaused) {
+            this.playRandomBgMusic();
+        }
+    }
+
+    setPause(paused) {
+        this.isPaused = paused;
+        if (paused) {
+            this.stopMusic();
         } else if (!this.isGameOver) {
             this.playRandomBgMusic();
         }
@@ -211,6 +225,7 @@ class AudioManager {
 
     reset() {
         this.isGameOver = false;
+        this.isPaused = false;
         this.stopMusic();
     }
 }

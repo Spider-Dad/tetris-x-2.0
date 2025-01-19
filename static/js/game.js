@@ -247,11 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isGameOver) return;
 
         isPaused = !isPaused;
-        if (isPaused) {
-            audioManager.stopMusic();
-        } else {
-            audioManager.playRandomBgMusic();
-        }
+        audioManager.setPause(isPaused);
     }
 
     // Event Listeners
