@@ -320,10 +320,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         startButton.disabled = true;
 
         // Останавливаем титульную музыку
-        if (titleMusic) {
-            titleMusic.stop();
-            titleMusic = null;
-        }
         audioManager.stopMusic();
 
         // Показываем экран загрузки
