@@ -3,7 +3,6 @@ class AudioManager {
         this.context = new (window.AudioContext || window.webkitAudioContext)();
         this.sounds = {
             title: '/static/music/01-title.mp3',
-            modem: '/static/music/modem.mp3',
             gameOver: '/static/music/08-game-over.mp3',
             levelUp: '/static/music/07-stage-clear.mp3'
         };
@@ -16,6 +15,47 @@ class AudioManager {
         this.currentMusic = null;
         this.isMuted = false;
         this.loadingPromises = new Map();
+    }
+
+    createModemSound() {
+        const duration = 3; // 3 seconds
+        const audioBuffer = this.context.createBuffer(1, this.context.sampleRate * duration, this.context.sampleRate);
+        const channelData = audioBuffer.getChannelData(0);
+
+        // Создаем характерный звук модема
+        for (let i = 0; i < audioBuffer.length; i++) {
+            // Базовая частота
+            const t = i / this.context.sampleRate;
+            const freq1 = 1000 + Math.sin(t * 10) * 500;
+            const freq2 = 2000 + Math.sin(t * 5) * 300;
+
+            // Смешиваем разные частоты для получения характерного звука
+            channelData[i] = 
+                0.3 * Math.sin(2 * Math.PI * freq1 * t) +
+                0.3 * Math.sin(2 * Math.PI * freq2 * t) +
+                0.2 * Math.sin(2 * Math.PI * 800 * t) *
+                Math.exp(-t); // Затухание
+        }
+
+        return audioBuffer;
+    }
+
+    async playModemSound() {
+        if (this.isMuted) return null;
+
+        try {
+            const buffer = this.createModemSound();
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.context.destination);
+            source.start(0);
+            return new Promise((resolve) => {
+                source.onended = resolve;
+            });
+        } catch (error) {
+            console.error('Error playing modem sound:', error);
+            return Promise.resolve();
+        }
     }
 
     async loadSound(url) {

@@ -218,20 +218,43 @@ document.addEventListener('DOMContentLoaded', () => {
         drawBoard();
     });
 
-    document.getElementById('startButton').addEventListener('click', () => {
+    document.getElementById('startButton').addEventListener('click', async () => {
+        const startButton = document.getElementById('startButton');
         const loadingDots = document.getElementById('loadingDots');
+
+        // Отключаем кнопку на время загрузки
+        startButton.disabled = true;
+        // Останавливаем титульную музыку
+        audioManager.stopMusic();
+
+        // Показываем точки загрузки
         loadingDots.classList.remove('hidden');
-        audioManager.playSound('modem').then(() => {
+
+        try {
+            // Воспроизводим звук модема и ждем его окончания
+            await audioManager.playModemSound();
+
+            // Переходим к игре
             document.getElementById('startScreen').classList.remove('active');
             document.getElementById('gameScreen').classList.add('active');
+
+            // Инициализируем игру
             initGame();
+
+            // Запускаем игровой цикл
             gameLoop = setInterval(() => {
                 if (!isPaused) {
                     moveDown();
                     drawBoard();
                 }
             }, Math.max(50, 1000 * (48 - level * 5) / 60));
-        });
+        } catch (error) {
+            console.error('Error during game initialization:', error);
+        } finally {
+            // Скрываем точки загрузки и включаем кнопку
+            loadingDots.classList.add('hidden');
+            startButton.disabled = false;
+        }
     });
 
     document.getElementById('restartButton').addEventListener('click', () => {
