@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     updateStats();
                     // Даем время на полную остановку музыки
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay
                     if (!audioManager.stoppingMusic && !audioManager.currentMusic) {
                         audioManager.playSound('title', true);
                     }

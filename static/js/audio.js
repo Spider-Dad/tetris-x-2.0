@@ -20,6 +20,7 @@ class AudioManager {
         this.isPaused = false;
         this.gameOverSound = null;
         this.stoppingMusic = false;
+        this.cleanupPromise = null;
     }
 
     createModemSound() {
@@ -89,6 +90,52 @@ class AudioManager {
         }
     }
 
+    async cleanupCurrentAudio() {
+        if (this.cleanupPromise) {
+            await this.cleanupPromise;
+        }
+
+        this.cleanupPromise = new Promise(async (resolve) => {
+            if (this.currentMusic) {
+                try {
+                    this.currentMusic.stop();
+                } catch (error) {
+                    console.error('Error stopping current music:', error);
+                }
+                this.currentMusic = null;
+            }
+
+            if (this.titleMusic) {
+                try {
+                    this.titleMusic.stop();
+                } catch (error) {
+                    console.error('Error stopping title music:', error);
+                }
+                this.titleMusic = null;
+            }
+
+            // Остановка всех активных звуков кроме звука окончания игры
+            const promises = Array.from(this.activeSounds).map(sound => {
+                if (sound !== this.gameOverSound) {
+                    try {
+                        sound.stop();
+                        this.activeSounds.delete(sound);
+                    } catch (error) {
+                        console.error('Error stopping sound:', error);
+                    }
+                }
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            this.cleanupPromise = null;
+            resolve();
+        });
+
+        return this.cleanupPromise;
+    }
+
     async playSound(soundKey, loop = false) {
         if (this.isMuted) return null;
 
@@ -104,7 +151,11 @@ class AudioManager {
                     return this.gameOverSound;
                 }
                 this.isGameOver = true;
-                this.stopMusic();
+                await this.cleanupCurrentAudio();
+            }
+
+            if (soundKey === 'title') {
+                await this.cleanupCurrentAudio();
             }
 
             const buffer = await this.loadSound(soundUrl);
@@ -144,11 +195,7 @@ class AudioManager {
         if (this.isMuted || this.isGameOver || this.isPaused) return;
 
         try {
-            if (this.currentMusic) {
-                this.currentMusic.stop();
-                this.currentMusic = null;
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
+            await this.cleanupCurrentAudio();
 
             const randomIndex = Math.floor(Math.random() * this.bgMusic.length);
             const musicUrl = this.bgMusic[randomIndex];
@@ -175,46 +222,12 @@ class AudioManager {
         }
     }
 
-
     async stopMusic() {
         if (this.stoppingMusic) return;
         this.stoppingMusic = true;
 
         try {
-            if (this.currentMusic) {
-                try {
-                    this.currentMusic.stop();
-                } catch (error) {
-                    console.error('Error stopping current music:', error);
-                }
-                this.currentMusic = null;
-            }
-
-            if (this.titleMusic) {
-                try {
-                    this.titleMusic.stop();
-                } catch (error) {
-                    console.error('Error stopping title music:', error);
-                }
-                this.titleMusic = null;
-            }
-
-            const promises = Array.from(this.activeSounds).map(sound => {
-                if (sound !== this.gameOverSound) {
-                    try {
-                        sound.stop();
-                        this.activeSounds.delete(sound);
-                        return new Promise(resolve => setTimeout(resolve, 50));
-                    } catch (error) {
-                        console.error('Error stopping sound:', error);
-                        return Promise.resolve();
-                    }
-                }
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await this.cleanupCurrentAudio();
         } finally {
             this.stoppingMusic = false;
         }
