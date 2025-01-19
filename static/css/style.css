@@ -84,7 +84,7 @@ button.pulse {
 }
 
 .loading-dots {
-    margin: 20px 0;
+    margin: 40px 0;
     display: flex;
     justify-content: center;
     gap: 10px;
@@ -103,11 +103,18 @@ button.pulse {
 }
 
 .tribute {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
+    left: 0;
     width: 100%;
     font-size: 12px;
     line-height: 1.5;
+    text-align: center;
+    z-index: 1;
+}
+
+#startButton {
+    margin-bottom: 60px;
 }
 
 .game-container {
