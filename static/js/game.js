@@ -18,20 +18,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     let gameLoop = null;
     let isPaused = false;
 
+    function getNewPiece() {
+        const piece = getRandomTetromino();
+        piece.x = Math.floor(COLS / 2) - Math.floor(piece.shape[0].length / 2);
+        piece.y = 0;
+        return piece;
+    }
+
     function initGame() {
         board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-        currentPiece = getRandomTetromino();
-        nextPiece = getRandomTetromino();
+        currentPiece = getNewPiece();
+        nextPiece = getNewPiece();
         score = 0;
         level = 1;
         lines = 0;
         updateStats();
+        drawBoard();
+        drawNextPiece();
         audioManager.playRandomBgMusic();
+    }
+
+    function drawBlock(ctx, x, y, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+
+        // Добавляем эффект свечения
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 5;
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+        ctx.shadowBlur = 0;
     }
 
     function drawBoard() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-        
+
         // Draw grid
         ctx.strokeStyle = '#003300';
         for (let i = 0; i < ROWS; i++) {
@@ -44,8 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         board.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    ctx.fillStyle = value;
-                    ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    drawBlock(ctx, x, y, value);
                 }
             });
         });
@@ -55,13 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPiece.shape.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
-                        ctx.fillStyle = currentPiece.color;
-                        ctx.fillRect(
-                            (currentPiece.x + x) * BLOCK_SIZE,
-                            (currentPiece.y + y) * BLOCK_SIZE,
-                            BLOCK_SIZE - 1,
-                            BLOCK_SIZE - 1
-                        );
+                        drawBlock(ctx, currentPiece.x + x, currentPiece.y + y, currentPiece.color);
                     }
                 });
             });
@@ -71,16 +85,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     function drawNextPiece() {
         nextCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
         if (nextPiece) {
+            const offsetX = (nextPieceCanvas.width - nextPiece.shape[0].length * BLOCK_SIZE) / 2;
+            const offsetY = (nextPieceCanvas.height - nextPiece.shape.length * BLOCK_SIZE) / 2;
+
             nextPiece.shape.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
                         nextCtx.fillStyle = nextPiece.color;
                         nextCtx.fillRect(
-                            x * BLOCK_SIZE + 20,
-                            y * BLOCK_SIZE + 20,
+                            x * BLOCK_SIZE + offsetX,
+                            y * BLOCK_SIZE + offsetY,
                             BLOCK_SIZE - 1,
                             BLOCK_SIZE - 1
                         );
+
+                        // Добавляем эффект свечения
+                        nextCtx.shadowColor = nextPiece.color;
+                        nextCtx.shadowBlur = 5;
+                        nextCtx.strokeStyle = '#ffffff';
+                        nextCtx.strokeRect(
+                            x * BLOCK_SIZE + offsetX,
+                            y * BLOCK_SIZE + offsetY,
+                            BLOCK_SIZE - 1,
+                            BLOCK_SIZE - 1
+                        );
+                        nextCtx.shadowBlur = 0;
                     }
                 });
             });
@@ -88,21 +117,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function moveDown() {
+        if (!currentPiece) return;
+
         currentPiece.y++;
         if (checkCollision()) {
             currentPiece.y--;
             placePiece();
             clearLines();
             currentPiece = nextPiece;
-            nextPiece = getRandomTetromino();
-            currentPiece.x = Math.floor(COLS / 2) - Math.floor(currentPiece.shape[0].length / 2);
-            currentPiece.y = 0;
-            
+            nextPiece = getNewPiece();
+
             if (checkCollision()) {
                 gameOver();
             }
             drawNextPiece();
         }
+        drawBoard();
     }
 
     function checkCollision() {
@@ -111,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!value) return false;
                 const newX = currentPiece.x + dx;
                 const newY = currentPiece.y + dy;
-                return newX < 0 || newX >= COLS || newY >= ROWS || (board[newY] && board[newY][newX]);
+                return newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY] && board[newY][newX]);
             });
         });
     }
@@ -119,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function placePiece() {
         currentPiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
-                if (value) {
+                if (value && currentPiece.y + y >= 0) {
                     board[currentPiece.y + y][currentPiece.x + x] = currentPiece.color;
                 }
             });
@@ -128,13 +158,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function clearLines() {
         let linesCleared = 0;
-        board.forEach((row, y) => {
-            if (row.every(value => value !== 0)) {
+        for (let y = ROWS - 1; y >= 0; y--) {
+            if (board[y].every(value => value !== 0)) {
                 board.splice(y, 1);
                 board.unshift(Array(COLS).fill(0));
                 linesCleared++;
+                y++; // Check the same row again
             }
-        });
+        }
 
         if (linesCleared > 0) {
             lines += linesCleared;
@@ -200,9 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 placePiece();
                 clearLines();
                 currentPiece = nextPiece;
-                nextPiece = getRandomTetromino();
-                currentPiece.x = Math.floor(COLS / 2) - Math.floor(currentPiece.shape[0].length / 2);
-                currentPiece.y = 0;
+                nextPiece = getNewPiece();
+                if (checkCollision()) {
+                    gameOver();
+                }
                 drawNextPiece();
                 break;
             case 'Enter':
@@ -250,9 +282,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             gameLoop = setInterval(() => {
                 if (!isPaused) {
                     moveDown();
-                    drawBoard();
                 }
-            }, Math.max(50, 1000 * (48 - level * 5) / 60));
+            }, Math.max(50, 1000 - (level - 1) * 50));
+
         } catch (error) {
             console.error('Error during game initialization:', error);
         } finally {
