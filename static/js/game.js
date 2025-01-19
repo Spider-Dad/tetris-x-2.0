@@ -196,8 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             score += [0, 100, 300, 700, 1500][linesCleared];
             if (score >= level * 3000) {
                 level++;
-                audioManager.playLevelUpSound();
-                startGameLoop(); // Обновляем скорость игры
+                startGameLoop(); // Обновляем только скорость игры
             }
             updateStats();
         }
