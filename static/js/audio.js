@@ -19,6 +19,7 @@ class AudioManager {
         this.isGameOver = false;
         this.isPaused = false;
         this.gameOverSound = null;
+        this.stoppingMusic = false;
     }
 
     createModemSound() {
@@ -175,35 +176,48 @@ class AudioManager {
     }
 
 
-    stopMusic() {
-        if (this.currentMusic) {
-            try {
-                this.currentMusic.stop();
-            } catch (error) {
-                console.error('Error stopping current music:', error);
-            }
-            this.currentMusic = null;
-        }
+    async stopMusic() {
+        if (this.stoppingMusic) return;
+        this.stoppingMusic = true;
 
-        if (this.titleMusic) {
-            try {
-                this.titleMusic.stop();
-            } catch (error) {
-                console.error('Error stopping title music:', error);
-            }
-            this.titleMusic = null;
-        }
-
-        Array.from(this.activeSounds).forEach(sound => {
-            if (sound !== this.gameOverSound) {
+        try {
+            if (this.currentMusic) {
                 try {
-                    sound.stop();
-                    this.activeSounds.delete(sound);
+                    this.currentMusic.stop();
                 } catch (error) {
-                    console.error('Error stopping sound:', error);
+                    console.error('Error stopping current music:', error);
                 }
+                this.currentMusic = null;
             }
-        });
+
+            if (this.titleMusic) {
+                try {
+                    this.titleMusic.stop();
+                } catch (error) {
+                    console.error('Error stopping title music:', error);
+                }
+                this.titleMusic = null;
+            }
+
+            const promises = Array.from(this.activeSounds).map(sound => {
+                if (sound !== this.gameOverSound) {
+                    try {
+                        sound.stop();
+                        this.activeSounds.delete(sound);
+                        return new Promise(resolve => setTimeout(resolve, 50));
+                    } catch (error) {
+                        console.error('Error stopping sound:', error);
+                        return Promise.resolve();
+                    }
+                }
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            await new Promise(resolve => setTimeout(resolve, 100));
+        } finally {
+            this.stoppingMusic = false;
+        }
     }
 
     toggleMute() {

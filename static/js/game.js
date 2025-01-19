@@ -312,26 +312,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 audioManager.toggleMute();
                 break;
             case 'Escape':
-                audioManager.stopMusic();
-                audioManager.reset();
-                document.getElementById('gameScreen').classList.remove('active');
-                document.getElementById('startScreen').classList.add('active');
-                board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-                score = 0;
-                level = 1;
-                lines = 0;
-                isGameOver = false;
-                isPaused = false;
-                if (gameLoop) {
-                    clearInterval(gameLoop);
-                    gameLoop = null;
-                }
-                updateStats();
-                setTimeout(() => {
-                    if (audioManager.currentMusic === null) {
+                (async () => {
+                    await audioManager.stopMusic();
+                    audioManager.reset();
+                    document.getElementById('gameScreen').classList.remove('active');
+                    document.getElementById('startScreen').classList.add('active');
+                    board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                    score = 0;
+                    level = 1;
+                    lines = 0;
+                    isGameOver = false;
+                    isPaused = false;
+                    if (gameLoop) {
+                        clearInterval(gameLoop);
+                        gameLoop = null;
+                    }
+                    updateStats();
+                    // Даем время на полную остановку музыки
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    if (!audioManager.stoppingMusic && !audioManager.currentMusic) {
                         audioManager.playSound('title', true);
                     }
-                }, 100);
+                })();
                 break;
         }
     });
