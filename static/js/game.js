@@ -385,6 +385,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('restartButton').addEventListener('click', () => {
         document.getElementById('gameOverScreen').classList.remove('active');
         document.getElementById('gameScreen').classList.add('active');
+        // Сбрасываем состояние аудио менеджера перед новой игрой
+        audioManager.stopMusic();
+        audioManager.reset();
         initGame();
     });
 
