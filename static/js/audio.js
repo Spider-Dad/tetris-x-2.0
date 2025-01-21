@@ -2,7 +2,7 @@ class AudioManager {
     constructor() {
         this.context = new (window.AudioContext || window.webkitAudioContext)();
         this.sounds = {
-            title: '/static/music/01-title.mp3',
+            title: '/static/music/02-title.mp3',
             gameOver: '/static/music/08-game-over.mp3'
         };
         this.bgMusic = [
